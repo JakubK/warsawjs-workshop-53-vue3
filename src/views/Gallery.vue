@@ -1,10 +1,9 @@
 <template>
-  <div v-if="create">
-    <h1 class="text-3xl font-bold text-center">Create meme</h1>
-    <meme-generator @update:model-value="save" @cancel="create = false"/>
-  </div>
-
-  <div v-else>
+    <div>
+    <Modal v-if="create" v-model:active="create" title="Create new meme">
+        <meme-generator @update:model-value="save" @cancel="create = false"/>
+    </Modal>
+  <div>
     <h1 class="text-3xl font-bold text-center">
       Meme gallery
       <button class="p-2 ml-2 bg-blue-500 text-lg text-white font-bold rounded" @click="create = true">
@@ -12,18 +11,22 @@
       </button>
     </h1>
     <main class="container mx-auto grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-4 p-6">
-      <img class="rounded-xl" :src="meme.url" v-for="meme in memes"/>
+        <router-link :to="'/' + index" v-for="(meme, index) in memes" :key="index">
+            <img class="rounded-xl"  :src="meme.url" />
+        </router-link>
     </main>
   </div>
+    </div>
 </template>
 
 <script>
 import {defineComponent, toRaw} from 'vue'
 import MemeGenerator from '@/components/MemeGenerator.vue';
+import Modal from '@/components/Modal.vue';
 
 
 export default defineComponent({
-  components: {MemeGenerator },
+  components: {MemeGenerator, Modal },
   data() {
     const memes = localStorage.getItem('memes');
     return {
