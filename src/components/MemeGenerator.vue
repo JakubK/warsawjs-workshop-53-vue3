@@ -53,50 +53,56 @@
 <script>
 import FormInput from '@/components/FormInput.vue';
 import FormSelect from '@/components/FormSelect.vue';
+import { ref, computed } from 'vue';
 export default {
   name: 'Meme',
   components: {FormSelect, FormInput},
   props: ['modelValue'],
   emits: ['update:modelValue', 'cancel'],
-  data() {
-    const memeCopy = this.modelValue ? {...this.modelValue} : {};
-    memeCopy.url = null
-    return {
-      availableBackgrounds: [],
-      meme: memeCopy
-    }
+  setup(props) {
+      const availableBackgrounds = ref([]);
+      const meme = ref(props.modelValue ? {...props.modelValue} : {})
+      meme.value.url = null;
+
+      const selectedBackground = computed(() => {
+          return availableBackgrounds.value.find(b => b.url === meme.value.backgroundUrl)
+      });
+
+      const isValid = computed(() => {
+          return meme.value.topCaption && meme.value.bottomCaption && selectedBackground.value
+      });
+
+      const fetchBackgrounds = async() => {
+        const response = await fetch('https://api.imgflip.com/get_memes')
+        const data = await response.json()
+        availableBackgrounds.value = data.data.memes
+      }
+
+      fetchBackgrounds();
+
+      const generate = async() => {
+        const formData = new FormData();
+        formData.append('template_id',  selectedBackground.value.id)
+        formData.append('text0', meme.value.topCaption)
+        formData.append('text1', meme.value.bottomCaption)
+        formData.append('username', import.meta.env.VITE_API_USERNAME)
+        formData.append('password', import.meta.env.VITE_API_PASSWORD)
+        const response = await fetch('https://api.imgflip.com/caption_image', {
+            method: 'POST',
+            body: formData
+        })
+        const data = await response.json()
+        meme.value.url = data.data.url
+      }
+
+      return {
+          availableBackgrounds,
+          meme,
+
+          isValid,
+          selectedBackground,
+          generate
+      }
   },
-  created() {
-    this.fetchBackgrounds()
-  },
-  computed: {
-    selectedBackground() {
-      return this.availableBackgrounds.find(b => b.url === this.meme.backgroundUrl)
-    },
-    isValid() {
-      return this.meme.topCaption && this.meme.bottomCaption && this.selectedBackground
-    }
-  },
-  methods: {
-    async generate() {
-      const formData = new FormData();
-      formData.append('template_id',  this.selectedBackground.id)
-      formData.append('text0', this.meme.topCaption)
-      formData.append('text1', this.meme.bottomCaption)
-      formData.append('username', import.meta.env.VITE_API_USERNAME)
-      formData.append('password', import.meta.env.VITE_API_PASSWORD)
-      const response = await fetch('https://api.imgflip.com/caption_image', {
-        method: 'POST',
-        body: formData
-      })
-      const data = await response.json()
-      this.meme.url = data.data.url
-    },
-    async fetchBackgrounds() {
-      const response = await fetch('https://api.imgflip.com/get_memes')
-      const data = await response.json()
-      this.availableBackgrounds = data.data.memes
-    }
-  }
 }
 </script>
